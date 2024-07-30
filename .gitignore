@@ -35,14 +35,19 @@ server.pid
 target
 .target
 test-result
+test/baseSpec
 tmp
 .vscode/
 .bsp/
+.bsp
 .scala-build/
 .tasty
 project/project/
 project/target/
+project/target/streams
 target/
+target/streams
+target/scala-2.13
 build/
 .classpath
 .project
@@ -53,3 +58,5 @@ bin/
 *.iws
 .scala_dependencies
 .cache-main
+
+.bsp/sbt.json
