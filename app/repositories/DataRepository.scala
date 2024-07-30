@@ -52,6 +52,7 @@ class DataRepository @Inject()(
       options = new ReplaceOptions().upsert(true) //What happens when we set this to false?
     ).toFuture()
 
+
   def delete(id: String): Future[result.DeleteResult] =
     collection.deleteOne(
       filter = byID(id)

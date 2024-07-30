@@ -1,11 +1,12 @@
 package controllers
 import models.DataModel
+import play.api.libs.json
 import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 import repositories.DataRepository
-
+import views.js.helper.json
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,8 +40,14 @@ class ApplicationController @Inject()(
 
    }
 
-  def delete(id: String) = Action {
-    Ok("update test!")
+  def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
+    dataRepository.delete(id).map { result =>
+      if (result.getDeletedCount > 0) {
+        Accepted
+      } else {
+        NotFound(Json.obj("error" -> "Item not found"))
+      }
+    }
   }
 
 }
