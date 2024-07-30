@@ -3,7 +3,7 @@ import models.DataModel
 import play.api.libs.json
 import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 import repositories.DataRepository
 import views.js.helper.json
@@ -24,8 +24,13 @@ class ApplicationController @Inject()(
     }
   }
 
-  def create() = Action {
-    Ok("create test!")
+  def create(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    request.body.validate[DataModel] match {
+      case JsSuccess(book, _) =>
+        dataRepository.create(book).map(createdBook
+        => Accepted{Json.toJson(createdBook)})
+      case JsError(_) => Future(BadRequest)
+    }
   }
 
   def read(id: String): Action[AnyContent] = Action.async { implicit request =>
