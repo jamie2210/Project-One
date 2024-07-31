@@ -1,10 +1,11 @@
 package controllers
 import models.DataModel
+import org.mongodb.scala.result.UpdateResult
 import play.api.libs.json
 import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
-import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, Result}
 import repositories.DataRepository
 import views.js.helper.json
 
@@ -27,8 +28,8 @@ class ApplicationController @Inject()(
   def create(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[DataModel] match {
       case JsSuccess(book, _) =>
-        dataRepository.create(book).map(createdBook
-        => Accepted{Json.toJson(createdBook)})
+        dataRepository.create(book).map(created
+        => Accepted{Json.toJson(created)})
       case JsError(_) => Future(BadRequest)
     }
   }
@@ -36,21 +37,29 @@ class ApplicationController @Inject()(
   def read(id: String): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.read(id).map {
       case Some(item) => Ok{Json.toJson(item)}
-      case None => NotFound(Json.obj("error" -> "Item not found"))
+      case None => NotFound(Json.toJson("Item not found"))
     }
   }
 
-  def update(id: String) = Action {
-    Ok("update test!")
-
-   }
+    def update(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    request.body.validate[DataModel] match {
+      case JsSuccess(dataModel, _) =>
+          dataRepository.update(id, dataModel).flatMap {_ =>
+            dataRepository.read(id).map {
+              case updatedItem => Accepted({Json.toJson(updatedItem)})
+              case _ => NotFound(Json.toJson(s"Item $id not found"))
+              }
+            }
+          case JsError(_) => Future.successful(BadRequest)
+      }
+    }
 
   def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.delete(id).map { result =>
       if (result.getDeletedCount > 0) {
         Accepted
       } else {
-        NotFound(Json.obj("error" -> "Item not found"))
+        NotFound(Json.toJson("Item not found"))
       }
     }
   }
