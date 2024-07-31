@@ -36,8 +36,8 @@ class ApplicationController @Inject()(
 
   def read(id: String): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.read(id).map {
-      case Some(item) => Ok{Json.toJson(item)}
-      case None => NotFound(Json.toJson("Item not found"))
+      case Right(item) => Ok{Json.toJson(item)}
+      case Left (_) => NotFound(Json.toJson("Item not found"))
     }
   }
 
@@ -46,8 +46,8 @@ class ApplicationController @Inject()(
       case JsSuccess(dataModel, _) =>
           dataRepository.update(id, dataModel).flatMap {_ =>
             dataRepository.read(id).map {
-              case updatedItem => Accepted({Json.toJson(updatedItem)})
-              case _ => NotFound(Json.toJson(s"Item $id not found"))
+              case Right(updatedItem) => Accepted({Json.toJson(updatedItem)})
+              case Left(_) => NotFound(Json.toJson(s"Item $id not found"))
               }
             }
           case JsError(_) => Future.successful(BadRequest)
