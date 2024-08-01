@@ -18,3 +18,5 @@ lazy val root = (project in file("."))
     name := "Project-One"
   )
   .enablePlugins(PlayScala)
+
+libraryDependencies += ws
