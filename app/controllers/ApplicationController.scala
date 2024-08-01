@@ -21,7 +21,7 @@ class ApplicationController @Inject()(
   def index(): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.index().map{
       case Right(item: Seq[DataModel]) => Ok {Json.toJson(item)}
-      case Left(error) => Status(error)(Json.toJson("Unable to find any books"))
+      case Left(_) => BadRequest(Json.toJson("Unable to find any books"))
     }
   }
 
@@ -29,8 +29,8 @@ class ApplicationController @Inject()(
     request.body.validate[DataModel] match {
       case JsSuccess(book, _) =>
         dataRepository.create(book).map(created
-        => Accepted{Json.toJson(created)})
-      case JsError(_) => Future(BadRequest)
+        => Created{Json.toJson(created)})
+      case JsError(_) => Future(BadRequest(Json.toJson("Invalid Json format")))
     }
   }
 
