@@ -20,3 +20,4 @@ lazy val root = (project in file("."))
   .enablePlugins(PlayScala)
 
 libraryDependencies += ws
+libraryDependencies += "com.typesafe.play" %% "play-ws" % "2.8.8"
