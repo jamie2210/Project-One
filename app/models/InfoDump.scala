@@ -10,5 +10,5 @@ case class InfoDump(
                      )
 
 object InfoDump {
-  val format: OFormat[InfoDump] = Json.format[InfoDump]
+  implicit val format: OFormat[InfoDump] = Json.format[InfoDump]
 }
