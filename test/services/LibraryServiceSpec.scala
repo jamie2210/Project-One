@@ -26,15 +26,6 @@ class LibraryServiceSpec extends BaseSpec with MockFactory with ScalaFutures wit
     )
   )
 
-  val gameOfThronesBook: Book = Book(
-    InfoDump(
-    _id = "someId",
-    name = "A Game of Thrones",
-    description = "The best book!!!",
-    pageCount = 100
-    )
-  )
-
   "getGoogleBook" should {
     val url: String = "testUrl"
 
@@ -45,7 +36,7 @@ class LibraryServiceSpec extends BaseSpec with MockFactory with ScalaFutures wit
         .once()
 
       whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "")) { result =>
-        result shouldBe gameOfThronesBook
+        result shouldBe gameOfThrones.as[Book]
       }
     }
   }
