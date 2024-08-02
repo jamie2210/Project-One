@@ -1,23 +1,21 @@
 package controllers
 
 import baseSpec.BaseSpecWithApplication
-import models.DataModel
-import org.scalamock.clazz.MockImpl.mock
+import models._
 import play.api.test.FakeRequest
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.Helpers._
-import repositories.DataRepository
 
-import scala.Option.when
 import scala.concurrent.Future
 
 class ApplicationControllerSpec extends BaseSpecWithApplication{
 
   val TestApplicationController = new ApplicationController(
     component,
-    repository
+    service,
+    repository,
   )
 
   private val dataModel: DataModel = DataModel(
