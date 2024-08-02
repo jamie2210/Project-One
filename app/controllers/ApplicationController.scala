@@ -1,5 +1,5 @@
 package controllers
-import models.DataModel
+import models.{Book, DataModel, InfoDump}
 import org.mongodb.scala.result.UpdateResult
 import play.api.libs.json
 import play.api.libs.json.Format.GenericFormat
@@ -7,6 +7,7 @@ import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, Result}
 import repositories.DataRepository
+import services.LibraryService
 import views.js.helper.json
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ApplicationController @Inject()(
-                                       val controllerComponents: ControllerComponents,
+                                       val controllerComponents: ControllerComponents, val service: LibraryService,
                                        val dataRepository: DataRepository)(implicit val ec: ExecutionContext) extends BaseController {
 
   def index(): Action[AnyContent] = Action.async { implicit request =>
@@ -61,6 +62,13 @@ class ApplicationController @Inject()(
       } else {
         NotFound(Json.toJson("Item not found"))
       }
+    }
+  }
+
+  def getGoogleBook(search: String, term: String): Action[AnyContent] = Action.async { implicit request =>
+    service.getGoogleBook(search = search, term = term).map {
+      case Book(search, term) => Ok{Json.toJson(Book(search, term))}
+      case _ => NotFound(Json.toJson("Item not found"))
     }
   }
 
