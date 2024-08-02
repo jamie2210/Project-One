@@ -1,6 +1,6 @@
 package repositories
 
-import models.DataModel
+import models._
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters.empty
 import org.mongodb.scala.model._
@@ -24,10 +24,10 @@ class DataRepository @Inject()(
   replaceIndexes = false
 ) {
 
-  def index(): Future[Either[Int, Seq[DataModel]]]  =
-    collection.find().toFuture().map{
+  def index(): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]] =
+    collection.find().toFuture().map {
       case books: Seq[DataModel] => Right(books)
-      case _ => Left(404)
+      case _ => Left(APIError.BadAPIResponse(404, "Books cannot be found"))
     }
 
   def create(book: DataModel): Future[DataModel] =
@@ -41,10 +41,10 @@ class DataRepository @Inject()(
       Filters.equal("_id", id)
     )
 
-  def read(id: String): Future[Either[Int, DataModel]] =
+  def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]] =
     collection.find(byID(id)).headOption.map {
       case Some(data) => Right(data)
-      case None => Left(404)
+      case None => Left(APIError.BadAPIResponse(404, "Books cannot be found"))
     }
 
   def update(id: String, book: DataModel): Future[result.UpdateResult] =
