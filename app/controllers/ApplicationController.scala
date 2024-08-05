@@ -1,5 +1,5 @@
 package controllers
-import models.{Book, DataModel, InfoDump}
+import models._
 import org.mongodb.scala.result.UpdateResult
 import play.api.libs.json
 import play.api.libs.json.Format.GenericFormat
@@ -70,10 +70,9 @@ class ApplicationController @Inject()(
   }
 
   def getGoogleBook(search: String, term: String): Action[AnyContent] = Action.async { implicit request =>
-    service.getGoogleBook(search = search, term = term).map {
-      case Book(search) => Ok{Json.toJson(Book(search))}
-      case Book(search) => Ok{Json.toJson(Book(search))}
-      case _ => NotFound(Json.toJson("Item not found"))
+    service.getGoogleBook(search = search, term = term).value.map {
+      case Right(book) => Ok(Json.toJson(search, term))
+      case Left(error) => Status(error.httpResponseStatus)
     }
   }
 

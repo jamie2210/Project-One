@@ -1,5 +1,6 @@
 package connectors
 
+import cats.data.EitherT
 import models._
 import play.api.libs.json.OFormat
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
