@@ -1,5 +1,6 @@
 package repositories
 
+import com.mongodb.client.result.DeleteResult
 import models._
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters.empty
@@ -55,10 +56,11 @@ class DataRepository @Inject()(
     ).toFuture()
 
 
-  def delete(id: String): Future[result.DeleteResult] =
-    collection.deleteOne(
-      filter = byID(id)
-    ).toFuture()
+  def delete(id: String): Future[Either[APIError.BadAPIResponse, DeleteResult]] =
+    collection.deleteOne(filter = byID(id)).toFuture().map { result =>
+      if (result.getDeletedCount > 0) Right(DeleteResult)
+      else Left(APIError.BadAPIResponse(404, "Books cannot be found"))
+    }
 
   def deleteAll(): Future[Unit] = collection.deleteMany(empty()).toFuture().map(_ => ()) //Hint: needed for tests
 
