@@ -29,8 +29,10 @@ class ApplicationController @Inject()(
   def create(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[DataModel] match {
       case JsSuccess(book, _) =>
-        dataRepository.create(book).map(created
-        => Created{Json.toJson(created)})
+        dataRepository.create(book).map {
+          case Right (createdBook) => Created({Json.toJson(createdBook)})
+          case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.upstreamMessage))
+        }
       case JsError(_) => Future(BadRequest(Json.toJson("Invalid Json format")))
     }
   }
