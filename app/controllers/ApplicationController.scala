@@ -58,12 +58,14 @@ class ApplicationController @Inject()(
     }
 
   def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
-    dataRepository.delete(id).map { result =>
+    dataRepository.delete(id).map {
+      case Right(result) =>
       if (result.getDeletedCount > 0) {
-        Accepted
+        Accepted(Json.toJson("Item deleted"))
       } else {
         NotFound(Json.toJson("Item not found"))
       }
+      case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.upstreamMessage))
     }
   }
 
