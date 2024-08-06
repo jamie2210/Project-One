@@ -29,13 +29,13 @@ class DataRepository @Inject()(
   def index(): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]] =
     collection.find().toFuture().map {
       case books: Seq[DataModel] => Right(books)
-      case _ => Left(APIError.BadAPIResponse(404, "Books cannot be found"))
+      case _ => Left(APIError.BadAPIResponse(404, "Book cannot be found"))
     }
 
   def create(book: DataModel): Future[Either[APIError.BadAPIResponse, DataModel]] =
     collection.insertOne(book).toFuture().map { result =>
       if (result.wasAcknowledged()) Right(book)
-      else Left(APIError.BadAPIResponse(404, "Failed to create book"))
+      else Left(APIError.BadAPIResponse(400, "Invalid Json format"))
     }
 
   private def byID(id: String): Bson =
@@ -46,21 +46,28 @@ class DataRepository @Inject()(
   def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]] =
     collection.find(byID(id)).headOption.map {
       case Some(data) => Right(data)
-      case None => Left(APIError.BadAPIResponse(404, "Books cannot be found"))
+      case None => Left(APIError.BadAPIResponse(404, "Book cannot be found"))
     }
 
-  def update(id: String, book: DataModel): Future[Either[APIError.BadAPIResponse, UpdateResult]] =
-    collection.replaceOne(filter = byID(id), replacement = book,
-      options = new ReplaceOptions().upsert(true)).toFuture().map { result =>
-      if (result.wasAcknowledged()) Right(result)
-      else Left(APIError.BadAPIResponse(404, "Failed to update book"))
+  def update(id: String, book: DataModel): Future[Either[APIError.BadAPIResponse, UpdateResult]] = {
+    collection.find(byID(id)).toFuture().flatMap { bookFound =>
+      bookFound.headOption match {
+      case Some(_) =>
+          collection.replaceOne(filter = byID(id), replacement = book,
+            options = new ReplaceOptions().upsert(true)).toFuture().map { result =>
+            if (result.wasAcknowledged()) Right(result)
+            else Left(APIError.BadAPIResponse(400, "Failed to update book"))
+          }
+          case _ => Future.successful(Left(APIError.BadAPIResponse(404, "Book not found")))
+        }
     }
+  }
 
 
   def delete(id: String): Future[Either[APIError.BadAPIResponse, DeleteResult]] =
     collection.deleteOne(filter = byID(id)).toFuture().map { result =>
       if (result.getDeletedCount > 0) Right(result)
-      else Left(APIError.BadAPIResponse(404, "Books cannot be found"))
+      else Left(APIError.BadAPIResponse(500, "Book cannot be found"))
     }
 
   def deleteAll(): Future[Unit] = collection.deleteMany(empty()).toFuture().map(_ => ()) //Hint: needed for tests

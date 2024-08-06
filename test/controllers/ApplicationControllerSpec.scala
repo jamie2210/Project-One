@@ -10,7 +10,7 @@ import play.api.test.Helpers._
 
 import scala.concurrent.Future
 
-class ApplicationControllerSpec extends BaseSpecWithApplication{
+class ApplicationControllerSpec extends BaseSpecWithApplication {
 
   val TestApplicationController = new ApplicationController(
     component,
@@ -41,27 +41,27 @@ class ApplicationControllerSpec extends BaseSpecWithApplication{
       status(result) shouldBe OK
 
     }
-    "return BadRequest when no data is found" in {
+    "return APIError when no data is found" in {
       beforeEach()
       // Create request and ensure the item is created
       val createRequest: FakeRequest[JsValue] = buildPost(s"/api${dataModel._id}").withBody[JsValue](Json.toJson(dataModel))
       val createdResult: Future[Result] = TestApplicationController.create()(createRequest)
       status(createdResult) shouldBe Status.CREATED
+      val errorResponse = APIError.BadAPIResponse(404, "Book cannot be found")
 
       // Delete the book
       val deleteResult: Future[Result] = TestApplicationController.delete(dataModel._id)(FakeRequest(DELETE, dataModel._id))
       // Attempt to read book
       val readResult: Future[Result] = TestApplicationController.read(dataModel._id)(FakeRequest())
 
-      status(readResult) shouldBe Status.NOT_FOUND
-      contentAsJson(readResult).as[String] shouldBe "Item not found"
+      status(readResult) shouldBe errorResponse.httpResponseStatus
+      contentAsJson(readResult) shouldBe Json.toJson(errorResponse.upstreamMessage)
       afterEach()
     }
   }
 
 
   "ApplicationController .create" should {
-
     "create a book in the database" in {
       beforeEach()
       // Create request and ensure the item is created
@@ -69,6 +69,10 @@ class ApplicationControllerSpec extends BaseSpecWithApplication{
       val createdResult: Future[Result] = TestApplicationController.create()(request)
 
       status(createdResult) shouldBe Status.CREATED
+      afterEach()
+    }
+    "return a left if an error occurs" in {
+      beforeEach()
       afterEach()
     }
     "return BadRequest for invalid JSON" in {
@@ -83,7 +87,6 @@ class ApplicationControllerSpec extends BaseSpecWithApplication{
   }
 
   "ApplicationController .read" should {
-
     "find a book in the database by id" in {
       beforeEach()
       // Create request and ensure the item is created
@@ -97,56 +100,57 @@ class ApplicationControllerSpec extends BaseSpecWithApplication{
       contentAsJson(readResult).as[DataModel] shouldBe dataModel
       afterEach()
     }
-    "return NotFound for a non-existent book id" in {
+    "return APIError for a non-existent book id" in {
       beforeEach()
       // Request for a non-existent book ID
       val nonExistentId = "non-existent-id"
       val readResult: Future[Result] = TestApplicationController.read(nonExistentId)(FakeRequest())
+      val errorResponse = APIError.BadAPIResponse(404, "Book cannot be found")
 
-      status(readResult) shouldBe Status.NOT_FOUND
-      contentAsJson(readResult).as[String] shouldBe "Item not found"
+      status(readResult) shouldBe errorResponse.httpResponseStatus
+      contentAsJson(readResult) shouldBe Json.toJson(errorResponse.upstreamMessage)
       afterEach()
     }
   }
 
-  "Application .update"  should {
-    "update a book in the database by id" in {
+
+  "ApplicationController .update" should {
+
+    "update a book in the database" in {
       beforeEach()
-      // Create request and ensure the item is created
-      val createRequest: FakeRequest[JsValue] = buildPost(s"/api${dataModel._id}").withBody[JsValue](Json.toJson(dataModel))
-      val createdResult: Future[Result] = TestApplicationController.create()(createRequest)
-      status(createdResult) shouldBe Status.CREATED
+      val initialBook = DataModel("1", "Initial Book", "Initial description", 100)
+      await(repository.create(initialBook))
 
-      // Update the created item
-      val updateRequest: FakeRequest[JsValue] = FakeRequest(PUT, s"/api/update${dataModel._id}").withBody[JsValue](Json.toJson(dataModel))
-      val updateResult: Future[Result] = TestApplicationController.update(dataModel._id.toString)(updateRequest)
+      val updatedBook = DataModel("1", "Updated Book", "Updated description", 150)
+      val request: FakeRequest[JsValue] = FakeRequest(PUT, "/api/1").withBody[JsValue](Json.toJson(updatedBook))
+      val updatedResult: Future[Result] = TestApplicationController.update("1")(request)
 
-
-      status(updateResult) shouldBe Status.ACCEPTED
-      contentAsJson(updateResult).as[DataModel] shouldBe dataModel
-
+      status(updatedResult) shouldBe Status.ACCEPTED
+      contentAsJson(updatedResult) shouldBe Json.toJson(updatedBook)
       afterEach()
     }
-    "return NotFound for a non-existent book id" in {
-      beforeEach()
-      // Request for a non-existent book ID
-      val nonExistentId = "non-existent-id"
-      val readResult: Future[Result] = TestApplicationController.read(nonExistentId)(FakeRequest())
 
-      status(readResult) shouldBe Status.NOT_FOUND
-      contentAsJson(readResult).as[String] shouldBe "Item not found"
+    "return 404 Not Found when trying to update a non-existent book" in {
+      beforeEach()
+      val updatedBook = DataModel("1", "Updated Book", "Updated description", 150)
+      val request: FakeRequest[JsValue] = FakeRequest(PUT, "/api/1").withBody[JsValue](Json.toJson(updatedBook))
+      val updatedResult: Future[Result] = TestApplicationController.update("1")(request)
+
+      status(updatedResult) shouldBe Status.NOT_FOUND
       afterEach()
     }
+
     "return BadRequest for invalid JSON" in {
       beforeEach()
       val invalidJson: JsValue = Json.parse("""{ "invalid": "json" }""")
-      val request: FakeRequest[JsValue] = FakeRequest(POST, "/api").withBody[JsValue](invalidJson)
-      val result: Future[Result] = TestApplicationController.create()(request)
+      val request: FakeRequest[JsValue] = FakeRequest(PUT, "/api/1").withBody[JsValue](invalidJson)
+      val result: Future[Result] = TestApplicationController.update("1")(request)
 
       status(result) shouldBe Status.BAD_REQUEST
       afterEach()
     }
   }
+
 
 
   "ApplicationController .delete()" should {
@@ -164,5 +168,16 @@ class ApplicationControllerSpec extends BaseSpecWithApplication{
       status(deleteResult) shouldBe Status.ACCEPTED
       afterEach()
       }
+    "return error response when book cannot be found" in {
+      // Request for a non-existent book ID
+      beforeEach()
+      val nonExistentId = "non-existent-id"
+      val readResult: Future[Result] = TestApplicationController.read(nonExistentId)(FakeRequest())
+      val errorResponse = APIError.BadAPIResponse(200, "Book cannot be found")
+
+      status(readResult) shouldBe errorResponse.httpResponseStatus
+      contentAsJson(readResult) shouldBe Json.toJson(errorResponse.upstreamMessage)
+      afterEach()
+    }
     }
 }
